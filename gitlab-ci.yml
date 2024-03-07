@@ -1,0 +1,53 @@
+# .gitlab-ci.yml
+
+# Define variables
+variables:
+  DOCKER_IMAGE_NAME: "weather-app"
+  CLOUD_STORAGE_KEY: "$CLOUD_STORAGE_KEY"  # Define this variable in GitLab CI/CD settings
+
+# Define stages
+stages:
+  - linting
+  - testing
+  - build
+  - deploy
+
+# Define linting stage
+linting:
+  stage: linting
+  image: python:3.11.1
+  script:
+    - pip3 install flake8
+    - flake8 weather_data.py
+
+# Define testing stage
+testing:
+  stage: testing
+  image: python:3.11.1
+  script:
+    - pip3 install -r requirements.txt  # Install dependencies
+    - python3 -m unittest discover  # Run unit tests
+
+# Define build stage
+build:
+  stage: build
+  image: docker:19.03.12
+  services:
+    - docker:dind
+  script:
+    - docker build -t weather-app .
+
+# Define deploy stage
+ideploy:
+  stage: deploy
+  image: docker:19.03.12
+  services:
+    - docker:dind
+  script:
+    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin  # Log in to Docker Hub
+    - docker tag $DOCKER_IMAGE_NAME "$DOCKER_USERNAME/weather-app"  # Tag the Docker image
+    - docker push "$DOCKER_USERNAME/weather-app"
+  only:
+    - main  # Only deploy from the master branch
+
+
